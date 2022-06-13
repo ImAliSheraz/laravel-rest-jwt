@@ -30,20 +30,20 @@ class JWTController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|min:2|max:100',
             'email' => 'required|email|min:5|max:50|unique:users|regex:/^[A-z0-9_.]+[@][A-z0-9_\-]+([.][A-z0-9_\-]+)+[A-z.]{1,4}$/',
-            'password' => 'required|min:8|max:20|regex:/^.*(?=.*?[A-Z])(?=(.*[a-z]){1,})(?=(.*[\d]){1,})(?=(.*[\W]){1,})(?!.*\s).{8,}$/|same:confirm-password',
+            'password' => 'required|min:8|max:20|regex:/^.*(?=.*?[A-Z])(?=(.*[a-z]){1,})(?=(.*[\d]){1,})(?=(.*[\W]){1,})(?!.*\s).{8,}$/|same:confirm',
         ]);
         if ($validator->fails()) {
-            return response()->json($validator->messages()->all(), 400);
+            return $this->responseApi($validator->messages()->all(), false, 'Validation Issues', 200);
         }
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password)
         ]);
-        return response()->json([
-            'message' => 'User successfully registered',
-            'user' => $user
-        ], 200);
+        $data = [
+            'name' => $user->name,
+        ];
+        return $this->responseApi($data, true, 'Successfully Registered', 200);
     }
 
     /**
@@ -58,12 +58,17 @@ class JWTController extends Controller
             'password' => 'required|min:8|max:20|regex:/^.*(?=.*?[A-Z])(?=(.*[a-z]){1,})(?=(.*[\d]){1,})(?=(.*[\W]){1,})(?!.*\s).{8,}$/',
         ]);
         if ($validator->fails()) {
-            return response()->json($validator->messages()->all(), 422);
+            return $this->responseApi($validator->messages()->all(), false, 'Validation Issues', 200);
         }
         if (!$token = auth()->attempt($validator->validated())) {
-            return response()->json(['error' => 'Unauthorized'], 401);
+            return $this->responseApi([], false, 'Unauthorized', 200);
         }
-        return $this->respondWithToken($token);
+        $data = [
+            'name' => auth()->user()->name,
+            'access_token' => $token,
+            'token_type' => 'bearer',
+        ];
+        return $this->responseApi($data, true, 'Successfully Login', 200);
     }
 
     /**
@@ -111,5 +116,14 @@ class JWTController extends Controller
             'token_type' => 'bearer',
             'expires_in' => auth()->factory()->getTTL() * 60
         ]);
+    }
+
+    public function responseApi($data, $status, $message, $code)
+    {
+        return response()->json([
+            'data' => $data,
+            'message' => $message,
+            'status' => $status
+        ], $code);
     }
 }
