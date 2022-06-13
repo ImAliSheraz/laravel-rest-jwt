@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\PostController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\JWTController;
+
 set_time_limit(10000000);
 /*
 |--------------------------------------------------------------------------
@@ -22,3 +24,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::post('posts', 'PostController@store');
 Route::get('posts', 'PostController@index');
 Route::delete('posts', 'PostController@destroy');
+
+Route::group(['middleware' => 'api'], function ($router) {
+    Route::post('/register', [JWTController::class, 'register']);
+    Route::post('/login', [JWTController::class, 'login']);
+    Route::post('/logout', [JWTController::class, 'logout']);
+    Route::post('/refresh', [JWTController::class, 'refresh']);
+    Route::post('/profile', [JWTController::class, 'profile']);
+});
